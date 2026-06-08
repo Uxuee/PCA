@@ -1,6 +1,6 @@
 # How PCA Is Made
 
-PCA starts with a data table.
+PCA starts with a data table. The technical name is a matrix.
 
 For gene expression, rows are often samples and columns are genes:
 
@@ -21,6 +21,20 @@ T3          -0.48       0.55    -0.10
 ```
 
 The PCA workflow is the same.
+
+## The Short Version
+
+PCA asks:
+
+> Which directions through this high-dimensional cloud explain the most variation?
+
+If you have 5,000 genes, each sample is a point in 5,000-dimensional space. PCA rotates that space and creates new axes:
+
+- `PC1`: the direction where samples spread out the most
+- `PC2`: the next biggest direction, independent of PC1
+- `PC3`: the next biggest direction, independent of PC1 and PC2
+
+The new axes are ordered from most variation to least variation.
 
 ## Step 1: Clean the Matrix
 
@@ -47,6 +61,20 @@ That means each gene or embedding dimension is recentered around zero.
 
 This matters because PCA is looking for variation around the average profile.
 
+Formula:
+
+```text
+centered_value = original_value - mean_of_that_feature
+```
+
+Example:
+
+```text
+gene_1 values:        8, 10, 12
+mean of gene_1:       10
+centered gene_1:     -2,  0,  2
+```
+
 ## Step 3: Scale If Appropriate
 
 Scaling divides each column by its standard deviation.
@@ -57,6 +85,12 @@ For gene expression, scaling depends on the scientific question. If highly varia
 
 For embeddings, dimensions are usually already in comparable units, but scaling can still be tested.
 
+Formula:
+
+```text
+scaled_value = (original_value - feature_mean) / feature_standard_deviation
+```
+
 ## Step 4: Find New Axes
 
 PCA creates new axes called principal components:
@@ -66,6 +100,64 @@ PCA creates new axes called principal components:
 - `PC3`: the next, and so on
 
 Each PC is a weighted combination of the original variables.
+
+There are two common ways software calculates these axes:
+
+1. Covariance/eigen decomposition.
+2. Singular value decomposition, often called SVD.
+
+You usually do not need to calculate these by hand, but the idea is:
+
+```text
+centered_matrix -> find directions of maximum variance -> PC axes
+```
+
+In R, this is done with:
+
+```r
+pca <- prcomp(expression_matrix, center = TRUE, scale. = FALSE)
+```
+
+In Python, this is done with:
+
+```python
+pca = PCA(n_components=10)
+scores = pca.fit_transform(matrix)
+```
+
+## What Scores and Loadings Mean
+
+PCA produces two important tables.
+
+### Scores
+
+Scores tell you where each sample lands on each PC.
+
+Example:
+
+```text
+sample_id    PC1      PC2
+S1          -12.5      4.1
+S2           -8.2      9.7
+S3           31.0     -6.3
+```
+
+These are the coordinates used in a PCA scatter plot.
+
+### Loadings
+
+Loadings tell you how much each gene or feature contributes to each PC.
+
+Example:
+
+```text
+gene_id    PC1_loading    PC2_loading
+gene_A       0.18          -0.02
+gene_B      -0.11           0.20
+gene_C       0.03           0.15
+```
+
+Genes with large positive or negative loadings are major contributors to that PC.
 
 ## Step 5: Project Samples Onto the PCs
 
@@ -93,6 +185,34 @@ This means PC1 and PC2 together capture 48.1% of the variation used in that PCA.
 
 That is why PC1-PC2 plots are useful, but not complete. Later PCs can still contain important structure.
 
+How it is calculated:
+
+```text
+variance_explained_for_PC1 = variance_of_PC1 / total_variance
+```
+
+In R:
+
+```r
+variance_explained <- pca$sdev^2 / sum(pca$sdev^2)
+```
+
+In Python:
+
+```python
+variance_explained = pca.explained_variance_ratio_
+```
+
+## Why Use the Top Variable Genes?
+
+For RNA-seq PCA, it is common to use the top variable genes, such as the top 5,000 variable genes.
+
+Why?
+
+Genes that barely change across samples mostly add noise. Highly variable genes are more useful for seeing sample structure.
+
+This does not mean the other genes are unimportant for differential expression. It only means the PCA map is clearer when it uses features that carry variation.
+
 ## Important PCA Outputs
 
 ### Scores
@@ -119,4 +239,3 @@ A covariate heatmap asks whether metadata variables explain each PC. For example
 - Did I inspect PC1 vs PC2 and later PCs?
 - Did I color PCA by biological and technical covariates?
 - Did I avoid treating PCA as a significance test?
-
