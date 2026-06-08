@@ -1,0 +1,22 @@
+# Data and generated outputs
+data/*.csv
+data/*.tsv
+data/*.rds
+data/*.RDS
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
